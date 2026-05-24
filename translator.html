@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>快捷翻译</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #f5f5f5;
+  --card: #fff;
+  --primary: #4f6ef7;
+  --primary-hover: #3d5ce5;
+  --text: #1a1a2e;
+  --text-secondary: #6b7280;
+  --border: #e5e7eb;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.app { width: 100%; max-width: 1000px; display: flex; flex-direction: column; gap: 12px; }
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header h1 { font-size: 22px; font-weight: 700; }
+
+.header-right { display: flex; align-items: center; gap: 10px; }
+
+/* Language bar */
+.lang-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lang-select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--card);
+  cursor: pointer;
+  outline: none;
+  flex: 1;
+  min-width: 140px;
+}
+.lang-select:focus { border-color: var(--primary); }
+
+.btn-swap {
+  width: 36px; height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--card);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all .2s;
+}
+.btn-swap:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* Translation panels */
+.panels {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+  min-height: 380px;
+}
+
+.panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.panel-header .char-count { font-weight: 500; }
+
+.panel textarea {
+  flex: 1;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 16px;
+  font-size: 16px;
+  font-family: inherit;
+  line-height: 1.6;
+  color: var(--text);
+}
+.panel textarea::placeholder { color: #c4c4c4; }
+
+.output-area {
+  flex: 1;
+  padding: 16px;
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text);
+}
+
+.output-placeholder {
+  color: #c4c4c4;
+  user-select: none;
+}
+
+/* Buttons */
+.btn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .2s;
+}
+
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+.btn-outline {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-outline:hover { background: #f9fafb; }
+
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+.btn-icon {
+  width: 32px; height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+/* Settings modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s;
+}
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+.modal {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: 90%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal h3 { font-size: 16px; }
+
+.modal label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.modal input {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: monospace;
+  outline: none;
+}
+.modal input:focus { border-color: var(--primary); }
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modal .hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.modal .hint a { color: var(--primary); }
+
+/* Spinner */
+.spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a2e;
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 13px;
+  z-index: 200;
+  opacity: 0;
+  transition: opacity .3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+@media (max-width: 640px) {
+  .panels { flex-direction: column; min-height: auto; }
+  .panel { min-height: 180px; }
+  .lang-bar { flex-direction: column; }
+  .btn-swap { transform: rotate(90deg); }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="header">
+    <h1>快捷翻译</h1>
+    <div class="header-right">
+      <button class="btn btn-outline btn-icon" id="settingsBtn" title="设置 API Key">⚙</button>
+    </div>
+  </header>
+
+  <!-- Language selectors -->
+  <div class="lang-bar">
+    <select class="lang-select" id="sourceLang"></select>
+    <button class="btn-swap" id="swapBtn" title="交换语言">⇄</button>
+    <select class="lang-select" id="targetLang"></select>
+    <button class="btn btn-primary" id="translateBtn">翻译</button>
+  </div>
+
+  <!-- Panels -->
+  <div class="panels">
+    <div class="panel">
+      <div class="panel-header">
+        <span>原文</span>
+        <span class="char-count" id="sourceCount">0</span>
+      </div>
+      <textarea id="sourceText" placeholder="输入要翻译的文字..." autofocus></textarea>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <span>译文</span>
+        <button class="btn btn-outline btn-sm" id="copyBtn" style="display:none">复制</button>
+      </div>
+      <div class="output-area">
+        <span class="output-placeholder" id="outputPlaceholder">翻译结果将显示在这里</span>
+        <span id="outputText"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <h3>API 设置</h3>
+    <div>
+      <label>DeepSeek API Key</label>
+      <input type="password" id="apiKeyInput" placeholder="sk-xxxxxxxxxxxxxxxx">
+    </div>
+    <div class="hint">
+      在 <a href="https://platform.deepseek.com/api_keys" target="_blank">platform.deepseek.com</a> 获取 API Key
+      <br>Key 仅保存在浏览器本地，不会被上传。
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="settingsCancel">取消</button>
+      <button class="btn btn-primary" id="settingsSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  const LANGUAGES = [
+    { code: 'auto', name: '自动检测', en: 'the source language' },
+    { code: 'zh', name: '中文', en: 'Chinese' },
+    { code: 'en', name: '英语', en: 'English' },
+    { code: 'ja', name: '日语', en: 'Japanese' },
+    { code: 'ko', name: '韩语', en: 'Korean' },
+    { code: 'fr', name: '法语', en: 'French' },
+    { code: 'de', name: '德语', en: 'German' },
+    { code: 'es', name: '西班牙语', en: 'Spanish' },
+    { code: 'ru', name: '俄语', en: 'Russian' },
+    { code: 'pt', name: '葡萄牙语', en: 'Portuguese' },
+    { code: 'it', name: '意大利语', en: 'Italian' },
+    { code: 'ar', name: '阿拉伯语', en: 'Arabic' },
+    { code: 'th', name: '泰语', en: 'Thai' },
+    { code: 'vi', name: '越南语', en: 'Vietnamese' },
+    { code: 'id', name: '印尼语', en: 'Indonesian' },
+    { code: 'ms', name: '马来语', en: 'Malay' },
+    { code: 'zh-TW', name: '繁体中文', en: 'Traditional Chinese (Taiwan)' },
+  ];
+
+  const sourceLang = document.getElementById('sourceLang');
+  const targetLang = document.getElementById('targetLang');
+  const sourceText = document.getElementById('sourceText');
+  const outputPlaceholder = document.getElementById('outputPlaceholder');
+  const outputText = document.getElementById('outputText');
+  const translateBtn = document.getElementById('translateBtn');
+  const copyBtn = document.getElementById('copyBtn');
+  const sourceCount = document.getElementById('sourceCount');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const settingsModal = document.getElementById('settingsModal');
+  const apiKeyInput = document.getElementById('apiKeyInput');
+  const toast = document.getElementById('toast');
+
+  let apiKey = localStorage.getItem('ds_translate_key') || '';
+  let translating = false;
+
+  // Auto-detect proxy mode (page served from translate_proxy.py on port 18766)
+  const useProxy = window.location.port === '18766';
+  const API_URL = useProxy
+    ? '/api/translate'
+    : 'https://api.deepseek.com/chat/completions';
+
+  // Init language selects
+  function buildLangOptions(selected) {
+    return LANGUAGES.map(l =>
+      `<option value="${l.code}" ${l.code === selected ? 'selected' : ''}>${l.name}</option>`
+    ).join('');
+  }
+
+  sourceLang.innerHTML = buildLangOptions('auto');
+  targetLang.innerHTML = buildLangOptions('en');
+
+  // Load saved preferences
+  const savedSource = localStorage.getItem('ds_translate_source');
+  const savedTarget = localStorage.getItem('ds_translate_target');
+  if (savedSource) sourceLang.value = savedSource;
+  if (savedTarget) targetLang.value = savedTarget;
+
+  // Show API key status
+  if (apiKey) {
+    settingsBtn.textContent = '🔑';
+    settingsBtn.title = 'API Key 已设置';
+  }
+
+  // Char count
+  sourceText.addEventListener('input', () => {
+    sourceCount.textContent = sourceText.value.length;
+  });
+
+  // Swap languages
+  document.getElementById('swapBtn').addEventListener('click', () => {
+    const src = sourceLang.value;
+    if (src === 'auto') return;
+    sourceLang.value = targetLang.value;
+    targetLang.value = src;
+    savePrefs();
+    // Also swap text
+    if (outputText.textContent.trim()) {
+      sourceText.value = outputText.textContent.trim();
+      outputText.textContent = '';
+      outputPlaceholder.style.display = '';
+      sourceCount.textContent = sourceText.value.length;
+      sourceText.focus();
+    }
+  });
+
+  function savePrefs() {
+    localStorage.setItem('ds_translate_source', sourceLang.value);
+    localStorage.setItem('ds_translate_target', targetLang.value);
+  }
+
+  sourceLang.addEventListener('change', savePrefs);
+  targetLang.addEventListener('change', savePrefs);
+
+  // Translate
+  translateBtn.addEventListener('click', doTranslate);
+  sourceText.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'Enter') doTranslate();
+  });
+
+  async function doTranslate() {
+    const text = sourceText.value.trim();
+    if (!text) { showToast('请输入要翻译的文字'); return; }
+    if (!apiKey) { openSettings(); showToast('请先设置 DeepSeek API Key'); return; }
+
+    const src = sourceLang.value;
+    const tgt = targetLang.value;
+
+    translating = true;
+    translateBtn.disabled = true;
+    translateBtn.innerHTML = '<span class="spinner"></span> 翻译中...';
+    outputText.textContent = '';
+    outputPlaceholder.style.display = 'none';
+
+    const langEn = {};
+    LANGUAGES.forEach(l => langEn[l.code] = l.en);
+
+    let systemPrompt;
+    if (src === 'auto') {
+      systemPrompt = `You are a translator. Translate the following text into ${langEn[tgt]}. IMPORTANT: You must output ONLY the translated text in ${langEn[tgt]}. Do NOT include any explanations, notes, or the original text. Do NOT output in any language other than ${langEn[tgt]}.`;
+    } else {
+      systemPrompt = `You are a translator. Translate the following text from ${langEn[src]} to ${langEn[tgt]}. IMPORTANT: You must output ONLY the translated text in ${langEn[tgt]}. Do NOT include any explanations, notes, or the original text. Do NOT output in any language other than ${langEn[tgt]}.`;
+    }
+
+    let result;
+
+    try {
+      if (useProxy) {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_key: apiKey, text, source: src, target: tgt })
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || '翻译失败');
+        result = data.text;
+      } else {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: text }
+            ],
+            temperature: 0.1,
+            max_tokens: 4096
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.text();
+          let msg = `翻译失败 (${res.status})`;
+          try { const j = JSON.parse(err); if (j.error && j.error.message) msg = j.error.message; } catch {}
+          throw new Error(msg);
+        }
+
+        const data = await res.json();
+        result = data.choices[0].message.content.trim();
+      }
+
+      outputText.textContent = result;
+      copyBtn.style.display = '';
+    } catch (e) {
+      outputText.textContent = '';
+      outputPlaceholder.style.display = '';
+      outputPlaceholder.textContent = '翻译失败，请重试';
+      showToast(e.message || '翻译失败');
+    }
+
+    translating = false;
+    translateBtn.disabled = false;
+    translateBtn.textContent = '翻译';
+  }
+
+  // Copy
+  copyBtn.addEventListener('click', () => {
+    const text = outputText.textContent;
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('已复制到剪贴板');
+    });
+  });
+
+  // Settings
+  function openSettings() {
+    apiKeyInput.value = apiKey;
+    settingsModal.classList.add('active');
+    apiKeyInput.focus();
+  }
+
+  settingsBtn.addEventListener('click', openSettings);
+  document.getElementById('settingsCancel').addEventListener('click', () => {
+    settingsModal.classList.remove('active');
+  });
+  settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) settingsModal.classList.remove('active');
+  });
+
+  document.getElementById('settingsSave').addEventListener('click', () => {
+    apiKey = apiKeyInput.value.trim();
+    if (apiKey) {
+      localStorage.setItem('ds_translate_key', apiKey);
+      settingsBtn.textContent = '🔑';
+      settingsBtn.title = 'API Key 已设置';
+    } else {
+      localStorage.removeItem('ds_translate_key');
+      settingsBtn.textContent = '⚙';
+      settingsBtn.title = '设置 API Key';
+    }
+    settingsModal.classList.remove('active');
+    showToast(apiKey ? 'API Key 已保存' : 'API Key 已清除');
+  });
+
+  // Toast
+  let toastTimer;
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') settingsModal.classList.remove('active');
+  });
+})();
+</script>
+
+</body>
+</html>

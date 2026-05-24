@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>在线工具箱</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+.container { width: 100%; max-width: 600px; }
+h1 {
+  text-align: center;
+  color: #fff;
+  font-size: 32px;
+  margin-bottom: 12px;
+  text-shadow: 0 2px 4px rgba(0,0,0,.2);
+}
+.subtitle {
+  text-align: center;
+  color: rgba(255,255,255,.8);
+  margin-bottom: 40px;
+  font-size: 15px;
+}
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.15);
+  transition: transform .2s, box-shadow .2s;
+  text-decoration: none;
+  display: block;
+  color: inherit;
+}
+.card:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,0,0,.2); }
+.card-icon { font-size: 36px; margin-bottom: 10px; }
+.card h2 { font-size: 20px; margin-bottom: 6px; }
+.card p { font-size: 14px; color: #6b7280; line-height: 1.5; }
+.card .tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 10px;
+}
+.tag-offline { background: #ecfdf5; color: #059669; }
+.tag-online { background: #eff6ff; color: #2563eb; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🛠 在线工具箱</h1>
+  <p class="subtitle">纯网页工具，无需安装，打开即用</p>
+
+  <a class="card" href="translator.html">
+    <div class="card-icon">🌐</div>
+    <h2>快捷翻译</h2>
+    <p>基于 DeepSeek AI 的多语言翻译工具，支持 16 种语言互译</p>
+    <span class="tag tag-online">需 API Key</span>
+  </a>
+
+  <a class="card" href="mac_training.html">
+    <div class="card-icon">📖</div>
+    <h2>Mac 培训文档编辑器</h2>
+    <p>制作 Mac 培训手册，内置模板，支持导出 PDF</p>
+    <span class="tag tag-offline">离线可用</span>
+  </a>
+
+  <a class="card" href="schedule.html">
+    <div class="card-icon">📅</div>
+    <h2>日程管理</h2>
+    <p>日历视图日程管理，支持提醒（需配合后台服务使用）</p>
+    <span class="tag tag-offline">离线可用</span>
+  </a>
+</div>
+</body>
+</html>

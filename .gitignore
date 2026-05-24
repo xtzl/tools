@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+
+# Local data (don't share personal data)
+schedule_events.json
+.schedule_reminded.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup scripts (only needed for local server setup)
+start_schedule.bat
+stop_schedule.bat
+setup_autostart.bat
+translate.bat
+schedule_server.py
+translate_proxy.py

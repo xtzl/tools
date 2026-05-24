@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日程管理</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #f0f2f5;
+  --card: #fff;
+  --primary: #4f6ef7;
+  --primary-light: #eef1ff;
+  --text: #1a1a2e;
+  --text-secondary: #6b7280;
+  --border: #e5e7eb;
+  --danger: #ef4444;
+  --danger-light: #fef2f2;
+  --warning: #f59e0b;
+  --warning-light: #fffbeb;
+  --success: #10b981;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.1);
+  --radius: 12px;
+  --transition: 0.2s ease;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.app {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+.btn-primary:hover { background: #3d5ce5; }
+
+.btn-outline {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-outline:hover { background: #f9fafb; }
+
+.btn-danger {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+.btn-danger:hover { background: #fee2e2; }
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+/* Notification permission badge */
+.notify-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all var(--transition);
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+.notify-status.enabled {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #059669;
+}
+.notify-status.disabled {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+.notify-status.unknown {
+  color: var(--text-secondary);
+}
+
+/* Calendar Card */
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+
+/* Month Navigation */
+.month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.month-nav h2 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.nav-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.nav-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all var(--transition);
+}
+.nav-btn:hover { background: #f3f4f6; }
+
+/* Calendar Grid */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.day-header {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 8px 0;
+  text-transform: uppercase;
+}
+
+.day-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all var(--transition);
+  position: relative;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.day-cell:hover { background: #f3f4f6; }
+
+.day-cell.other-month { color: #d1d5db; cursor: default; }
+.day-cell.other-month:hover { background: transparent; }
+
+.day-cell.today {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+}
+.day-cell.today:hover { background: #3d5ce5; }
+
+.day-cell.selected {
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 700;
+}
+.day-cell.selected.today {
+  background: var(--primary);
+  color: #fff;
+}
+
+.day-cell.has-events::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+.day-cell.today.has-events::after { background: #fff; }
+.day-cell.selected.has-events::after { background: var(--primary); }
+.day-cell.selected.today.has-events::after { background: #fff; }
+
+/* Schedule Panel */
+.schedule-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.schedule-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.schedule-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Upcoming today strip */
+.upcoming-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--warning-light);
+  font-size: 13px;
+  color: #92400e;
+}
+.upcoming-strip .upcoming-time {
+  font-weight: 700;
+  color: var(--warning);
+}
+
+.event-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.event-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #f9fafb;
+  transition: all var(--transition);
+  border: 1px solid transparent;
+}
+.event-item:hover {
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+}
+.event-item.upcoming {
+  background: #fffdf5;
+  border-color: #fde68a;
+}
+
+.event-time {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  white-space: nowrap;
+  min-width: 60px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.event-reminder-icon {
+  font-size: 11px;
+}
+
+.event-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.event-title {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.event-note {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.event-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.event-item:hover .event-actions { opacity: 1; }
+
+.no-events {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 32px 0;
+  font-size: 14px;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition);
+}
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 28px;
+  width: 90%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal h3 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.form-group input,
+.form-group textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: var(--primary);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* Reminder toggle in form */
+.reminder-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.reminder-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.reminder-row label {
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Today btn */
+.today-indicator {
+  font-size: 12px;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: background var(--transition);
+}
+.today-indicator:hover { background: var(--primary-light); }
+
+/* Toast notifications */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--card);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  padding: 16px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 300px;
+  max-width: 420px;
+  pointer-events: auto;
+  animation: toastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  border-left: 4px solid var(--warning);
+  position: relative;
+  overflow: hidden;
+}
+
+.toast.removing {
+  animation: toastSlideOut 0.25s ease forwards;
+}
+
+@keyframes toastSlideIn {
+  from { transform: translateX(120%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes toastSlideOut {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(120%); opacity: 0; }
+}
+
+.toast-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+  animation: bellShake 0.5s ease;
+}
+
+@keyframes bellShake {
+  0%, 100% { transform: rotate(0); }
+  15% { transform: rotate(15deg); }
+  30% { transform: rotate(-15deg); }
+  45% { transform: rotate(10deg); }
+  60% { transform: rotate(-10deg); }
+  75% { transform: rotate(5deg); }
+  90% { transform: rotate(-5deg); }
+}
+
+.toast-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-title {
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.toast-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+.toast-dismiss {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+  padding: 2px;
+  border-radius: 4px;
+}
+.toast-dismiss:hover { background: #f3f4f6; }
+
+/* Toast countdown bar */
+.toast::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--warning);
+  animation: toastTimer 5s linear forwards;
+  border-radius: 0 0 3px 0;
+}
+
+@keyframes toastTimer {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+@media (max-width: 600px) {
+  body { padding: 20px 12px; }
+  .card { padding: 16px; }
+  .day-cell { font-size: 12px; }
+  .event-actions { opacity: 1; }
+  .toast { min-width: auto; max-width: calc(100vw - 32px); }
+  .toast-container { right: 8px; left: 8px; }
+  .header h1 { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Header -->
+  <header class="header">
+    <h1>📅 日程管理</h1>
+    <div class="header-actions">
+      <span class="notify-status unknown" id="notifyStatus" title="通知状态">🔔 检测中</span>
+      <span class="today-indicator" id="todayBtn">今天</span>
+      <button class="btn btn-primary" id="addEventBtn">+ 新建日程</button>
+    </div>
+  </header>
+
+  <!-- Calendar -->
+  <div class="card">
+    <div class="month-nav">
+      <h2 id="monthLabel"></h2>
+      <div class="nav-btns">
+        <button class="nav-btn" id="prevMonth">◀</button>
+        <button class="nav-btn" id="nextMonth">▶</button>
+      </div>
+    </div>
+    <div class="calendar-grid" id="calendarGrid"></div>
+  </div>
+
+  <!-- Selected Day Schedule -->
+  <div class="card schedule-panel">
+    <div class="schedule-header">
+      <h3 id="scheduleTitle">选择一个日期查看日程</h3>
+      <span id="eventCount" style="font-size:13px;color:var(--text-secondary)"></span>
+    </div>
+    <div id="upcomingStrip"></div>
+    <ul class="event-list" id="eventList"></ul>
+  </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">新建日程</h3>
+    <div class="form-group">
+      <label>标题</label>
+      <input type="text" id="eventTitle" placeholder="日程标题" maxlength="50">
+    </div>
+    <div class="form-group">
+      <label>时间</label>
+      <input type="time" id="eventTime">
+    </div>
+    <div class="reminder-row" id="reminderRow" style="display:none">
+      <input type="checkbox" id="eventReminder" checked>
+      <label for="eventReminder">🔔 到时间提醒我</label>
+    </div>
+    <div class="form-group">
+      <label>备注</label>
+      <textarea id="eventNote" placeholder="可选备注" maxlength="200"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="modalCancel">取消</button>
+      <button class="btn btn-primary" id="modalSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+(function() {
+  const STORE_KEY = 'schedule_events';
+  const REMINDER_STORE = 'schedule_reminders_fired';
+  const API_BASE = 'http://localhost:18765';
+
+  let currentMonth = new Date().getMonth();
+  let currentYear = new Date().getFullYear();
+  let selectedDate = null;
+  let editingEventId = null;
+  let reminderTimer = null;
+  let apiMode = false;  // true = 使用后台服务, false = localStorage
+
+  // ── Storage (API mode + localStorage fallback) ────────────
+
+  let _eventsCache = null;
+
+  async function loadEvents() {
+    if (apiMode) {
+      try {
+        const res = await fetch(API_BASE + '/api/events');
+        if (res.ok) {
+          _eventsCache = await res.json();
+          return _eventsCache;
+        }
+      } catch (e) {
+        console.warn('API 读取失败，切换到本地模式');
+        apiMode = false;
+        updateModeIndicator();
+      }
+    }
+    // localStorage fallback
+    try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; }
+    catch { return []; }
+  }
+
+  async function saveEvents(events) {
+    _eventsCache = events;
+    if (apiMode) {
+      try {
+        const res = await fetch(API_BASE + '/api/events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(events)
+        });
+        if (res.ok) {
+          // Also sync to localStorage as backup
+          localStorage.setItem(STORE_KEY, JSON.stringify(events));
+          return;
+        }
+      } catch (e) {
+        console.warn('API 保存失败，切换到本地模式');
+        apiMode = false;
+        updateModeIndicator();
+      }
+    }
+    localStorage.setItem(STORE_KEY, JSON.stringify(events));
+  }
+
+  async function detectApiMode() {
+    try {
+      const res = await fetch(API_BASE + '/api/status');
+      if (res.ok) {
+        apiMode = true;
+        // Load events from API, sync to localStorage
+        const events = await loadEvents();
+        if (events) localStorage.setItem(STORE_KEY, JSON.stringify(events));
+      }
+    } catch (e) {
+      apiMode = false;
+    }
+    updateModeIndicator();
+  }
+
+  function updateModeIndicator() {
+    const el = document.getElementById('notifyStatus');
+    if (apiMode) {
+      el.className = 'notify-status enabled';
+      el.innerHTML = '🖥 后台服务运行中';
+      el.title = '数据通过后台服务同步，关闭浏览器也能收到提醒';
+    }
+  }
+
+  function loadFiredReminders() {
+    try { return JSON.parse(localStorage.getItem(REMINDER_STORE)) || {}; }
+    catch { return {}; }
+  }
+
+  function saveFiredReminders(data) {
+    localStorage.setItem(REMINDER_STORE, JSON.stringify(data));
+  }
+
+  function cleanFiredReminders() {
+    const data = loadFiredReminders();
+    const today = todayKey();
+    const keys = Object.keys(data);
+    let changed = false;
+    for (const k of keys) {
+      if (k !== today) { delete data[k]; changed = true; }
+    }
+    if (changed) saveFiredReminders(data);
+  }
+
+  function wasRemindedToday(eventId) {
+    const data = loadFiredReminders();
+    const today = todayKey();
+    return data[today] && data[today].includes(eventId);
+  }
+
+  function markRemindedToday(eventId) {
+    const data = loadFiredReminders();
+    const today = todayKey();
+    if (!data[today]) data[today] = [];
+    if (!data[today].includes(eventId)) {
+      data[today].push(eventId);
+      saveFiredReminders(data);
+    }
+  }
+
+  // ── Helpers ──────────────────────────────────────────────
+
+  function dateKey(y, m, d) {
+    return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
+
+  function todayKey() {
+    const t = new Date();
+    return dateKey(t.getFullYear(), t.getMonth(), t.getDate());
+  }
+
+  async function getEventsForDate(key) {
+    const events = await loadEvents();
+    return events.filter(e => e.date === key).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+  }
+
+  function currentHHMM() {
+    const t = new Date();
+    return `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
+  }
+
+  // ── Notification System ──────────────────────────────────
+
+  function getNotifyPermission() {
+    if (!('Notification' in window)) return 'unsupported';
+    return Notification.permission; // 'granted' | 'denied' | 'default'
+  }
+
+  function updateNotifyStatus() {
+    const el = document.getElementById('notifyStatus');
+    const perm = getNotifyPermission();
+    el.className = 'notify-status';
+    if (perm === 'granted') {
+      el.classList.add('enabled');
+      el.innerHTML = '🔔 提醒已开启';
+    } else if (perm === 'denied') {
+      el.classList.add('disabled');
+      el.innerHTML = '🔕 通知已关闭';
+    } else {
+      el.classList.add('unknown');
+      el.innerHTML = '🔔 点击开启通知';
+    }
+  }
+
+  function requestNotifyPermission() {
+    if (!('Notification' in window)) {
+      showToast('您的浏览器不支持桌面通知，将使用页内提醒', 'info');
+      return Promise.resolve('unsupported');
+    }
+    if (Notification.permission === 'granted') return Promise.resolve('granted');
+    if (Notification.permission === 'denied') {
+      showToast('通知权限已被拒绝，请在浏览器设置中开启', 'info');
+      return Promise.resolve('denied');
+    }
+    return Notification.requestPermission().then(perm => {
+      updateNotifyStatus();
+      if (perm === 'granted') {
+        showToast('✅ 桌面通知已开启，到时间会提醒您', 'info');
+      } else if (perm === 'denied') {
+        showToast('通知权限被拒绝，将使用页内弹窗提醒', 'info');
+      }
+      return perm;
+    });
+  }
+
+  function sendSystemNotification(event) {
+    const perm = getNotifyPermission();
+    if (perm !== 'granted') return false;
+
+    try {
+      const title = event.title;
+      const opts = {
+        body: event.time ? `⏰ ${event.time} — ${event.note || '点击查看详情'}` : (event.note || '到时间的日程'),
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🔔</text></svg>',
+        tag: event.id,
+        requireInteraction: true,
+        silent: false
+      };
+      const n = new Notification(title, opts);
+      n.onclick = () => {
+        window.focus();
+        // Navigate to event's date
+        const [y, m, d] = event.date.split('-').map(Number);
+        currentYear = y;
+        currentMonth = m - 1;
+        selectedDate = event.date;
+        renderCalendar();
+        renderSchedule();
+        n.close();
+      };
+      // Auto-close after 8 seconds
+      setTimeout(() => n.close(), 8000);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function showToast(title, type, timeStr) {
+    const container = document.getElementById('toastContainer');
+    const id = 'toast-' + Date.now();
+
+    const icons = {
+      reminder: '🔔',
+      info: '💬',
+      success: '✅'
+    };
+
+    const borderColors = {
+      reminder: 'var(--warning)',
+      info: 'var(--primary)',
+      success: 'var(--success)'
+    };
+
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.id = id;
+    toast.style.borderLeftColor = borderColors[type] || borderColors.info;
+    toast.innerHTML = `
+      <span class="toast-icon">${icons[type] || icons.info}</span>
+      <div class="toast-body">
+        <div class="toast-title">${escHtml(title)}</div>
+        ${timeStr ? `<div class="toast-meta">⏰ ${escHtml(timeStr)}</div>` : ''}
+      </div>
+      <span class="toast-dismiss" data-toast="${id}">✕</span>
+    `;
+
+    container.appendChild(toast);
+
+    // Dismiss handler
+    toast.querySelector('.toast-dismiss').addEventListener('click', () => removeToast(id));
+
+    // Auto-dismiss after 5s
+    const timer = setTimeout(() => removeToast(id), 5000);
+    toast._timer = timer;
+
+    // Limit to 3 toasts
+    const toasts = container.querySelectorAll('.toast');
+    if (toasts.length > 3) {
+      const oldest = toasts[0];
+      removeToast(oldest.id);
+    }
+  }
+
+  function removeToast(id) {
+    const toast = document.getElementById(id);
+    if (!toast) return;
+    clearTimeout(toast._timer);
+    toast.classList.add('removing');
+    toast.addEventListener('animationend', () => {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    });
+    // Fallback removal
+    setTimeout(() => {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 300);
+  }
+
+  // ── Reminder Check ───────────────────────────────────────
+
+  async function checkReminders() {
+    const now = currentHHMM();
+    const today = todayKey();
+    const allEvents = await loadEvents();
+    const events = allEvents.filter(e => {
+      if (e.date !== today) return false;
+      if (!e.time) return false;
+      if (e.reminder === false) return false;
+      return true;
+    });
+
+    for (const event of events) {
+      if (event.time === now && !wasRemindedToday(event.id)) {
+        fireReminder(event);
+        markRemindedToday(event.id);
+      }
+    }
+  }
+
+  function fireReminder(event) {
+    // Try system notification first
+    const systemSent = sendSystemNotification(event);
+
+    // Always show in-app toast (as backup or supplement)
+    showToast(event.title, 'reminder', event.time + (event.note ? ' — ' + event.note : ''));
+
+    // Refresh today's schedule view to update upcoming indicators
+    if (selectedDate === todayKey() || selectedDate === event.date) {
+      renderSchedule();
+    }
+  }
+
+  function startReminderTimer() {
+    if (reminderTimer) clearInterval(reminderTimer);
+    // Check immediately on start
+    checkReminders();
+    // Then every 30 seconds
+    reminderTimer = setInterval(checkReminders, 30000);
+  }
+
+  // ── Upcoming Today ───────────────────────────────────────
+
+  async function getUpcomingToday() {
+    const now = currentHHMM();
+    const today = todayKey();
+    const events = await loadEvents();
+    return events.filter(e => {
+      return e.date === today && e.time && e.time > now && e.reminder !== false;
+    }).sort((a, b) => a.time.localeCompare(b.time));
+  }
+
+  async function renderUpcomingStrip() {
+    const strip = document.getElementById('upcomingStrip');
+    if (selectedDate !== todayKey()) {
+      strip.innerHTML = '';
+      return;
+    }
+    const upcoming = await getUpcomingToday();
+    if (upcoming.length === 0) {
+      strip.innerHTML = '';
+      return;
+    }
+    const next = upcoming[0];
+    strip.innerHTML = `
+      <span>🔜</span>
+      <span>下一个提醒：<span class="upcoming-time">${escHtml(next.time)}</span> — ${escHtml(next.title)}</span>
+    `;
+  }
+
+  // ── Render Calendar ──────────────────────────────────────
+
+  async function renderCalendar() {
+    const grid = document.getElementById('calendarGrid');
+    const label = document.getElementById('monthLabel');
+
+    const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+    label.textContent = `${currentYear}年 ${months[currentMonth]}`;
+
+    const days = ['日', '一', '二', '三', '四', '五', '六'];
+    let html = days.map(d => `<div class="day-header">${d}</div>`).join('');
+
+    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
+    const today = todayKey();
+    const events = await loadEvents();
+    const eventDates = new Set(events.map(e => e.date));
+
+    // Previous month fill
+    for (let i = firstDay - 1; i >= 0; i--) {
+      const d = daysInPrevMonth - i;
+      html += `<div class="day-cell other-month">${d}</div>`;
+    }
+
+    // Current month
+    for (let d = 1; d <= daysInMonth; d++) {
+      const key = dateKey(currentYear, currentMonth, d);
+      let cls = 'day-cell';
+      if (key === today) cls += ' today';
+      if (key === selectedDate) cls += ' selected';
+      if (eventDates.has(key)) cls += ' has-events';
+      html += `<div class="${cls}" data-date="${key}">${d}</div>`;
+    }
+
+    // Next month fill
+    const remaining = 42 - firstDay - daysInMonth;
+    for (let d = 1; d <= remaining; d++) {
+      html += `<div class="day-cell other-month">${d}</div>`;
+    }
+
+    grid.innerHTML = html;
+
+    grid.querySelectorAll('.day-cell:not(.other-month)').forEach(cell => {
+      cell.addEventListener('click', () => {
+        selectedDate = cell.dataset.date;
+        renderCalendar();
+        renderSchedule();
+        renderUpcomingStrip();
+      });
+    });
+  }
+
+  // ── Render Schedule ──────────────────────────────────────
+
+  async function renderSchedule() {
+    const title = document.getElementById('scheduleTitle');
+    const count = document.getElementById('eventCount');
+    const list = document.getElementById('eventList');
+
+    if (!selectedDate) {
+      title.textContent = '选择一个日期查看日程';
+      count.textContent = '';
+      list.innerHTML = '<div class="no-events">点击日历中的日期查看或添加日程</div>';
+      renderUpcomingStrip();
+      return;
+    }
+
+    const [y, m, d] = selectedDate.split('-').map(Number);
+    title.textContent = `${y}年${m}月${d}日 日程`;
+    const dayEvents = await getEventsForDate(selectedDate);
+    count.textContent = dayEvents.length ? `${dayEvents.length} 项日程` : '';
+
+    if (dayEvents.length === 0) {
+      list.innerHTML = '<div class="no-events">当天暂无日程，点击"新建日程"添加</div>';
+    } else {
+      const now = currentHHMM();
+      const isToday = selectedDate === todayKey();
+
+      list.innerHTML = dayEvents.map(e => {
+        const isUpcoming = isToday && e.time && e.time > now && e.reminder !== false;
+        const wasFired = isToday && e.time && wasRemindedToday(e.id);
+        const cls = isUpcoming ? 'event-item upcoming' : 'event-item';
+        const reminderIcon = (wasFired) ? '✅' : (isUpcoming ? '🔔' : (e.time ? '🔕' : ''));
+        const reminderTitle = wasFired ? '已提醒' : (isUpcoming ? '即将提醒' : (e.time ? '已过时' : ''));
+
+        return `
+          <li class="${cls}">
+            <span class="event-time">
+              ${e.time || '全天'}
+              ${reminderIcon ? `<span class="event-reminder-icon" title="${reminderTitle}">${reminderIcon}</span>` : ''}
+            </span>
+            <div class="event-info">
+              <div class="event-title">${escHtml(e.title)}</div>
+              ${e.note ? `<div class="event-note">${escHtml(e.note)}</div>` : ''}
+            </div>
+            <div class="event-actions">
+              <button class="btn btn-outline btn-sm" data-action="edit" data-id="${e.id}">编辑</button>
+              <button class="btn btn-danger btn-sm" data-action="delete" data-id="${e.id}">删除</button>
+            </div>
+          </li>
+        `;
+      }).join('');
+    }
+
+    list.querySelectorAll('[data-action="edit"]').forEach(btn => {
+      btn.addEventListener('click', () => openEditModal(btn.dataset.id));
+    });
+    list.querySelectorAll('[data-action="delete"]').forEach(btn => {
+      btn.addEventListener('click', () => deleteEvent(btn.dataset.id));
+    });
+
+    renderUpcomingStrip();
+  }
+
+  function escHtml(s) {
+    const el = document.createElement('span');
+    el.textContent = s;
+    return el.innerHTML;
+  }
+
+  // ── Modal ────────────────────────────────────────────────
+
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalTitle = document.getElementById('modalTitle');
+  const eventTitleInput = document.getElementById('eventTitle');
+  const eventTimeInput = document.getElementById('eventTime');
+  const eventNoteInput = document.getElementById('eventNote');
+  const eventReminderCheck = document.getElementById('eventReminder');
+  const reminderRow = document.getElementById('reminderRow');
+
+  // Show/hide reminder row when time changes
+  eventTimeInput.addEventListener('change', () => {
+    reminderRow.style.display = eventTimeInput.value ? 'flex' : 'none';
+  });
+  eventTimeInput.addEventListener('input', () => {
+    reminderRow.style.display = eventTimeInput.value ? 'flex' : 'none';
+  });
+
+  function openAddModal() {
+    if (!selectedDate) {
+      showToast('请先在日历中选择一个日期', 'info');
+      return;
+    }
+    editingEventId = null;
+    modalTitle.textContent = '新建日程';
+    eventTitleInput.value = '';
+    eventTimeInput.value = '';
+    eventNoteInput.value = '';
+    eventReminderCheck.checked = true;
+    reminderRow.style.display = 'none';
+    modalOverlay.classList.add('active');
+    eventTitleInput.focus();
+  }
+
+  function openEditModal(id) {
+    loadEvents().then(events => {
+      const ev = events.find(e => e.id === id);
+      if (!ev) return;
+      editingEventId = id;
+      modalTitle.textContent = '编辑日程';
+      eventTitleInput.value = ev.title;
+      eventTimeInput.value = ev.time || '';
+      eventNoteInput.value = ev.note || '';
+      eventReminderCheck.checked = ev.reminder !== false;
+      reminderRow.style.display = ev.time ? 'flex' : 'none';
+      modalOverlay.classList.add('active');
+      eventTitleInput.focus();
+    });
+  }
+
+  function closeModal() {
+    modalOverlay.classList.remove('active');
+    editingEventId = null;
+  }
+
+  async function saveModal() {
+    const title = eventTitleInput.value.trim();
+    if (!title) {
+      showToast('请输入日程标题', 'info');
+      return;
+    }
+    const time = eventTimeInput.value;
+    const note = eventNoteInput.value.trim();
+    const reminder = time ? eventReminderCheck.checked : true;
+    let events = await loadEvents();
+
+    if (editingEventId) {
+      events = events.map(e => e.id === editingEventId ? { ...e, title, time, note, reminder } : e);
+    } else {
+      events.push({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        date: selectedDate,
+        title,
+        time,
+        note,
+        reminder
+      });
+
+      // Request notification permission when adding first timed event
+      if (time && getNotifyPermission() === 'default') {
+        requestNotifyPermission();
+      }
+    }
+
+    await saveEvents(events);
+    closeModal();
+    renderCalendar();
+    renderSchedule();
+  }
+
+  async function deleteEvent(id) {
+    if (!confirm('确定要删除这条日程吗？')) return;
+    let events = await loadEvents();
+    events = events.filter(e => e.id !== id);
+    await saveEvents(events);
+    renderCalendar();
+    renderSchedule();
+  }
+
+  // ── Event Bindings ───────────────────────────────────────
+
+  document.getElementById('prevMonth').addEventListener('click', () => {
+    if (currentMonth === 0) { currentMonth = 11; currentYear--; }
+    else currentMonth--;
+    renderCalendar();
+  });
+
+  document.getElementById('nextMonth').addEventListener('click', () => {
+    if (currentMonth === 11) { currentMonth = 0; currentYear++; }
+    else currentMonth++;
+    renderCalendar();
+  });
+
+  document.getElementById('todayBtn').addEventListener('click', () => {
+    const t = new Date();
+    currentMonth = t.getMonth();
+    currentYear = t.getFullYear();
+    selectedDate = todayKey();
+    renderCalendar();
+    renderSchedule();
+  });
+
+  document.getElementById('notifyStatus').addEventListener('click', () => {
+    if (getNotifyPermission() === 'granted') {
+      showToast('桌面通知已开启，到时间会自动提醒您', 'success');
+    } else {
+      requestNotifyPermission();
+    }
+  });
+
+  document.getElementById('addEventBtn').addEventListener('click', openAddModal);
+  document.getElementById('modalCancel').addEventListener('click', closeModal);
+  document.getElementById('modalSave').addEventListener('click', saveModal);
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) closeModal();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
+      closeModal();
+    }
+    if (e.key === 'Enter' && modalOverlay.classList.contains('active')) {
+      saveModal();
+    }
+  });
+
+  // ── Init ─────────────────────────────────────────────────
+
+  async function init() {
+    // Detect if running behind the Python server
+    await detectApiMode();
+    updateNotifyStatus();
+    cleanFiredReminders();
+    selectedDate = todayKey();
+    await renderCalendar();
+    await renderSchedule();
+    startReminderTimer();
+  }
+
+  init();
+})();
+</script>
+
+</body>
+</html>
