@@ -442,15 +442,25 @@ body {
     outputText.textContent = '';
     outputPlaceholder.style.display = 'none';
 
+    const langName = {};
+    LANGUAGES.forEach(l => langName[l.code] = l.name);
     const langEn = {};
     LANGUAGES.forEach(l => langEn[l.code] = l.en);
 
+    // Build translation instruction — bilingual for reliability
+    let targetLangName = langName[tgt];  // Chinese name for UI display
+    let targetLangEn = langEn[tgt];      // English name for prompt
+
     let systemPrompt;
     if (src === 'auto') {
-      systemPrompt = `You are a translator. Translate the following text into ${langEn[tgt]}. IMPORTANT: You must output ONLY the translated text in ${langEn[tgt]}. Do NOT include any explanations, notes, or the original text. Do NOT output in any language other than ${langEn[tgt]}.`;
+      systemPrompt = `你是一个专业翻译。将用户输入的任何语言文字，翻译成${targetLangName}。你只能输出翻译后的${targetLangName}文字，绝对不要输出原文、解释或任何其他内容。`;
     } else {
-      systemPrompt = `You are a translator. Translate the following text from ${langEn[src]} to ${langEn[tgt]}. IMPORTANT: You must output ONLY the translated text in ${langEn[tgt]}. Do NOT include any explanations, notes, or the original text. Do NOT output in any language other than ${langEn[tgt]}.`;
+      const srcName = langName[src];
+      systemPrompt = `你是一个专业翻译。将用户输入的${srcName}，翻译成${targetLangName}。你只能输出翻译后的${targetLangName}文字，绝对不要输出原文、解释或任何其他内容。`;
     }
+
+    // Prepend target language instruction to user message for double enforcement
+    const userMessage = `[请将以下文字翻译成${targetLangName}（${targetLangEn}），只输出译文]\n\n${text}`;
 
     let result;
 
@@ -459,7 +469,7 @@ body {
         const res = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ api_key: apiKey, text, source: src, target: tgt })
+          body: JSON.stringify({ api_key: apiKey, text: userMessage, source: src, target: tgt })
         });
         const data = await res.json();
         if (!data.ok) throw new Error(data.error || '翻译失败');
@@ -475,7 +485,7 @@ body {
             model: 'deepseek-chat',
             messages: [
               { role: 'system', content: systemPrompt },
-              { role: 'user', content: text }
+              { role: 'user', content: userMessage }
             ],
             temperature: 0.1,
             max_tokens: 4096
